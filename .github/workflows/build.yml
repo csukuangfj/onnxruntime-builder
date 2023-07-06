@@ -3,25 +3,26 @@ name: Build C++ Shared Library
 on:
   push:
     branches:
-      # - main
+      - main
+      - test
   release:
     types:
       - published
   workflow_dispatch:
     inputs:
       version:
-        description: "バージョン情報（A.BB.C / A.BB.C-preview.D）"
+        description: "Version information（A.BB.C / A.BB.C-preview.D）"
         required: true
       release:
-        description: "リリースするかどうか"
+        description: "Whether to release"
         type: boolean
 
 env:
   ONNXRUNTIME_VERSION:
-    |- # releaseタグ名か、workflow_dispatchでのバージョン名が入る。無指定なら適当なバージョン
+    |- # Enter release tag name or version name in workflow_dispatch. Appropriate version if not specified
     ${{ github.event.release.tag_name || github.event.inputs.version || '1.15.1' }}
   RELEASE:
-    |- # releaseタグ名か、workflow_dispatchでのreleaseフラグがあればリリースする
+    |- # Release if there is a release tag name or a release flag in workflow_dispatch
     ${{ github.event.release.tag_name != '' || github.event.inputs.release == 'true' }}
 
 defaults:
@@ -40,7 +41,7 @@ jobs:
             cxx_version: "8"
             arch: arm-linux-gnueabihf
             symlink_workaround: true
-            build_opts: --arm --cmake_extra_defines CMAKE_SYSTEM_NAME=Linux CMAKE_SYSTEM_PROCESSOR=armv7l --config Release --parallel --update --build --build_shared_lib
+            build_opts: --arm --cmake_extra_defines CMAKE_SYSTEM_NAME=Linux CMAKE_SYSTEM_PROCESSOR=armv7l onnxruntime_BUILD_UNIT_TESTS=OFF --config Release --parallel --update --build --build_shared_lib --skip_tests
             result_dir: build/Linux
             release_config: Release
           - artifact_name: onnxruntime-linux-arm64
@@ -49,12 +50,12 @@ jobs:
             cxx_version: "8"
             arch: aarch64-linux-gnu
             symlink_workaround: true
-            build_opts: --arm64 --cmake_extra_defines CMAKE_SYSTEM_NAME=Linux CMAKE_SYSTEM_PROCESSOR=aarch64 --config Release --parallel --update --build --build_shared_lib
+            build_opts: --arm64 --cmake_extra_defines CMAKE_SYSTEM_NAME=Linux CMAKE_SYSTEM_PROCESSOR=aarch64 onnxruntime_BUILD_UNIT_TESTS=OFF --config Release --parallel --update --build --build_shared_lib --skip_tests
             result_dir: build/Linux
             release_config: Release
           - artifact_name: onnxruntime-ios-arm64
             os: macos-12
-            build_opts: --config Release --parallel --update --build --build_shared_lib --skip_tests --use_xcode --ios --ios_sysroot iphoneos --osx_arch arm64 --apple_deploy_target 16.0
+            build_opts: --config Release --parallel --update --build --build_shared_lib --skip_tests --use_xcode --ios --ios_sysroot iphoneos --osx_arch arm64 --apple_deploy_target 13.0
             build_opts_workaround_protoc: --path_to_protoc_exe /usr/local/opt/protobuf@21/bin/protoc
             result_dir: build/iOS/Release
             release_config: Release-iphoneos
@@ -162,6 +163,7 @@ jobs:
           # skip test: https://github.com/microsoft/onnxruntime/issues/2436
           # ONNX Runtime v1.9.0 requires CMAKE_SYSTEM_PROCESSOR, https://github.com/microsoft/onnxruntime/releases/tag/v1.9.0
           # Both CMAKE_SYSTEM_NAME and CMAKE_SYSTEM_PROCESSOR are required.
+          echo "build_opts: ${{ matrix.build_opts }}"
           bash ./build.sh ${{ matrix.build_opts }} ${{ matrix.build_opts_workaround_protoc }}
 
       - name: Organize artifact
