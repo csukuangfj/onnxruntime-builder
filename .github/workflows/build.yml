@@ -160,7 +160,7 @@ jobs:
 
       - name: Build ONNX Runtime
         # if: steps.cache-build-result.outputs.cache-hit != 'true'
-        if: steps.cache-build-result.outputs.cache-hit != 'true' && startsWith(matrix.os, 'ubuntu')
+        if: startsWith(matrix.os, 'ubuntu')
         run: |
           # add --arm for gcc-8: https://github.com/microsoft/onnxruntime/issues/4189
           # skip test: https://github.com/microsoft/onnxruntime/issues/2436
